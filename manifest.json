@@ -1,0 +1,32 @@
+{
+    "manifest_version": 1,
+    "version": 1,
+    "type": "APP",
+    "name": {
+        "ja": "New LoopUp Field",
+        "en": "New LoopUp Field"
+    },
+    "description": {
+        "ja": "New LoopUp Field です。",
+        "en": "This is the New LoopUp Field."
+    },
+    "icon": "image/image.jpeg",
+    "desktop": {
+        "js": [
+            "https://js.cybozu.com/jquery/2.2.4/jquery.min.js",
+            "js/desktop.js"
+        ]
+    },
+    "config": {
+        "html": "html/config.html",
+        "js": [
+            "https://js.cybozu.com/jquery/2.2.4/jquery.min.js",
+            "https://js.cybozu.com/jsrender/0.9.86/jsrender.min.js",
+            "https://dl.dropbox.com/s/xj4oddksgixmk3o/config.js"
+        ],
+        "css": [
+            "css/config.css",
+            "css/51-current-default.css"
+        ]
+    }
+}
