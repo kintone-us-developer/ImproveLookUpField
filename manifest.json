@@ -14,7 +14,7 @@
     "desktop": {
         "js": [
             "https://js.cybozu.com/jquery/2.2.4/jquery.min.js",
-            "js/desktop.js"
+            "https://dl.dropbox.com/s/0ei1tpkzoqmyv5j/desktop.js"
         ]
     },
     "config": {

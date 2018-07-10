@@ -55,16 +55,11 @@
             <div class="kintoneplugin-row">{{html:dataSourceFields.title}}</div>
 
             
-
-
-            <div class="kintoneplugin-input-checkbox" id="{{html:dataSourceFields.id}}">
+            <select id="{{html:dataSourceFields.id}}" multiple="multiple">
                 {{for dataSourceFields.fields}}
-                <span class="kintoneplugin-input-checkbox-item">
-                    <input id="{{html:code}}" name="checkbox" type="checkbox" value="{{html:code}}"/>
-                    <label for="{{html:code}}">{{html:label}} [{{html:type}}]</label>
-                </span>
+                    <option value="{{html:code}}">{{html:label}} [{{html:type}}]</option>
                 {{/for}}
-            </div>
+            </select>
 
         </div>
 
