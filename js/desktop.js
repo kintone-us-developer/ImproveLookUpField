@@ -19,10 +19,11 @@ jQuery.noConflict();
         "app": dataSourceAppId,
         "fields": dataSourceFieldCodes
     };
-    var regex = / , /g;
+    var regexCommaSpace = /, | , | ,/g;
+    var regexBESpace = /^\s+|\s+$|,+$/g;
 
     //Check if the record has any of criterias
-    var includesObjectArray = function(record, criterias){ 
+    var includesCriteria = function(record, criterias){ 
         let criteria = '';
         for(let property of Object.values(record)){
             let propertyValue = property.value.toUpperCase();
@@ -37,45 +38,20 @@ jQuery.noConflict();
         }
         return false;
     };
-    // var includesObjectArray = function(criteria, records){
-    //     for(let record of records){ //record:an object that holds all data in the specified fields
-    //         for(let property of Object.values(record)){
-    //             if(property.value.toUpperCase().includes(criteria)){
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // };
 
     kintone.events.on(eventList, function(event) {
         kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
             sourceRecords = resp.records;
-            queryCriteriaArray = event['record'][textFieldCode]['value'].toUpperCase().replace(regex, ",").split(",");
+            let queryCriteria1 = event['record'][textFieldCode]['value'].replace(regexCommaSpace, ",");
+            let queryCriteria2 = queryCriteria1.replace(regexBESpace, "");
+            queryCriteriaArray = queryCriteria2.toUpperCase().split(",");
             console.log(queryCriteriaArray);
             
             for(let record of sourceRecords){
-                //console.log(includesObjectArray(record, queryCriteriaArray));
-                if(includesObjectArray(record, queryCriteriaArray) && !matchedRecordArray.includes(record)){
+                if(includesCriteria(record, queryCriteriaArray) && !matchedRecordArray.includes(record)){
                     matchedRecordArray.push(record);
                 }
             }
-            // for(let criteria of queryCriteriaArray){
-            //     console.log(includesObjectArray(criteria, sourceRecords));
-            //     if(includesObjectArray(criteria, sourceRecords) && !matchedDataArray.includes(record)){
-            //         matchedDataArray.push(record);
-            //     }
-            // }
-            // for(let key in dataSourceArray){
-            //     for(let element of Object.values(dataSourceArray[key])){
-            //         if(element.value){
-            //             if(includesObjectArray(element, queryCriteria) && !matchedDataArray.includes(dataSourceArray[key])){
-            //                 matchedDataArray.push(dataSourceArray[key]);
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
             console.log(matchedRecordArray);
             
             matchedRecordArray = [];  
