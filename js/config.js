@@ -27,10 +27,14 @@ jQuery.noConflict();
             var config = {};
             config.activation = $('#activation').prop('checked') ? 'active' : 'deactive';
             config.dataSourceAppId = $('#dataSourceAppId').val();
-            config.textFieldCode = $('#textField').val();
+            var textFieldCode = $('#textField').val();
+
+            fields.textFields.forEach(function(e){
+                if(textFieldCode === e.code){
+                    config.textField = JSON.stringify({'code': textFieldCode, 'label': e.label});
+                }
+            });
             
-//Goal: Get all selected fields
-            console.log($("#dataSourceFieldsId").val());
             config.dataSourceFieldCodes = JSON.stringify($("#dataSourceFieldsId").val());
 
             kintone.plugin.app.setConfig(config);
