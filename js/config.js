@@ -35,8 +35,12 @@ jQuery.noConflict();
                 }
             });
             
-            config.dataSourceFieldCodes = JSON.stringify($("#dataSourceFieldsId").val());
-
+            var tempDataSource = $("#dataSourceFieldsId").val();
+            if(!tempDataSource.includes(fields.recordNumField.code)){
+                tempDataSource.unshift(fields.recordNumField.code);
+            }
+            config.dataSourceFieldCodes = JSON.stringify(tempDataSource);
+            // config.recordNumField = JSON.stringify(fields.recordNumField);
             kintone.plugin.app.setConfig(config);
         });
         // cancel plug-in settings
@@ -72,7 +76,7 @@ jQuery.noConflict();
                 row: '',
                 id: 'dataSourceAppId',
                 fields: fields.apps
-            },
+            }
         };
         // render HTML
         $('#plugin-container').html(template(templateItems));
@@ -86,7 +90,6 @@ jQuery.noConflict();
 
             kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'GET', {
             'app': selectedAppId}, function(resp) {
-//Goal: Have a multi-select drop down list with all fields in the selected app
                 for (var key in resp.properties) {
                     field = resp.properties[key];
                     item = {
@@ -127,7 +130,8 @@ jQuery.noConflict();
         var fields = {
           'apps': [],//all apps in the kintone platform
           'textFields': [],//all text fields in the main app with the plugin
-          'appFields': [] //all fields in the selected app
+          'appFields': [], //all fields in the selected app
+          'recordNumField': ''
         };
         for (var key in respApps.apps) {
           var field = respApps.apps[key];
@@ -153,6 +157,9 @@ jQuery.noConflict();
                     case 'SINGLE_LINE_TEXT':
                         fields['textFields'].push(item);
                         break;
+                    case 'RECORD_NUMBER':
+                        fields.recordNumField = item;
+                        break;
                     default:
                         break;
                 }
@@ -164,57 +171,6 @@ jQuery.noConflict();
         // error
         console.log(error);
       });
-
-        // kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'GET', {
-        //     'app': kintone.app.getId()
-        // }, function(resp) {
-        //     var fields = {
-        //         'textField': [],
-        //         'countField': [],
-        //     };
-        //     for (var key in resp.properties) {
-        //         var field = resp.properties[key];
-        //         var item = {
-        //             label: field.label || field.code,
-        //             code: field.code,
-        //             type: field.type
-        //         };
-        //         switch (field.type) {
-        //             case 'MULTI_LINE_TEXT':
-        //                 fields['textField'].push(item);
-        //                 break;
-        //             case 'NUMBER':
-        //                 fields['countField'].push(item);
-        //                 break;
-        //             default:
-        //                 break;
-        //         }
-        //     }
-        //     Object.keys(fields).forEach(function(f) {
-        //         fields[f].sort(function(a, b) {
-        //             var aa = a.label || a.code;
-        //             var bb = b.label || b.code;
-        //             aa = aa.toUpperCase();
-        //             bb = bb.toUpperCase();
-        //             if (aa < bb) {
-        //                 return -1;
-        //             } else if (aa > bb) {
-        //                 return 1;
-        //             }
-        //             return 0;
-        //         });
-        //     });
-        //     createHtml(fields);
-        //     // set existing values
-        //     var config = kintone.plugin.app.getConfig(PLUGIN_ID);
-        //     if (config) {
-        //         $('#activation').prop('checked', config.activation === 'active');
-        //         $('#textField').val(config.textFieldCode);
-        //         $('#countField').val(config.countFieldCode);
-        //     }
-        //     // append events
-        //     appendEvents(fields);
-        // });
     };
 
     // initiated
