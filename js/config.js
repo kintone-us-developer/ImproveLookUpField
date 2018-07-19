@@ -6,14 +6,15 @@ jQuery.noConflict();
         'en': {
             pluginCancel: '     Cancel   ',
             configTitle: 'Settings',
-            textField: 'Select the Text Field for Query',
+            textField: 'Create a text field for query in the main app and select it here.',
             kintoneFieldConfig: 'Kintone field settings for the New LooUp Field plugin',
             pluginActivation: 'Plug-in activation',
             pluginActive: 'Active',
             pluginSubmit: '     Save   ',
-            apps: 'Select the data source app',
+            apps: 'Select the data source app. (You will fetch data from this app.)',
+            matching: 'Create one additional app with no fields and select the app here.',
             dataSourceFields: 'Select the data source field(s)',
-            textKintoneFields: 'Please create the following fields in your app form.'
+            textKintoneFields: 'Please follow the steps below.'
         }
     }
 
@@ -27,6 +28,7 @@ jQuery.noConflict();
             var config = {};
             config.activation = $('#activation').prop('checked') ? 'active' : 'deactive';
             config.dataSourceAppId = $('#dataSourceAppId').val();
+            config.dummyAppId = $('#dummyAppId').val();
             var textFieldCode = $('#textField').val();
 
             fields.textFields.forEach(function(e){
@@ -40,8 +42,28 @@ jQuery.noConflict();
                 tempDataSource.unshift(fields.recordNumField.code);
             }
             config.dataSourceFieldCodes = JSON.stringify(tempDataSource);
-            // config.recordNumField = JSON.stringify(fields.recordNumField);
-            kintone.plugin.app.setConfig(config);
+
+            var body = {
+                "app": config.dummyAppId,
+                "properties": {
+                    "recordMatchingInfo":{
+                        "type": "MULTI_LINE_TEXT",
+                        "code": "recordMatchingInfo",
+                        "label": "Matching Records Info",
+                        "defaultValue": "",
+                        "expression": "",
+                        "hideExpression": false,
+                        "noLabel": false
+                    }
+                }
+            };
+            
+            kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'POST', body, function(resp) {
+                // created a field in the dummy app
+                console.log(resp);
+
+                kintone.plugin.app.setConfig(config);
+            });
         });
         // cancel plug-in settings
         $('#cancel').click(function() {
@@ -76,6 +98,12 @@ jQuery.noConflict();
                 row: '',
                 id: 'dataSourceAppId',
                 fields: fields.apps
+            },
+            dummyApp: {
+                title: i18n.matching,
+                require: '*',
+                row: '',
+                id: 'dummyAppId',
             }
         };
         // render HTML
@@ -126,7 +154,6 @@ jQuery.noConflict();
     // fetch all fields in an app
     var apiCall = function() {
       kintone.api(kintone.api.url('/k/v1/apps', true), 'GET', {}, function(respApps) {
-        // success
         var fields = {
           'apps': [],//all apps in the kintone platform
           'textFields': [],//all text fields in the main app with the plugin
