@@ -23,7 +23,10 @@ jQuery.noConflict();
     };
     var body = "";
     var setTextFieldUniqueClassName, setTextFieldElement;
-    var aTagArray = [];
+    var matchingInfo = []; //index: recordNum in main app / value: recordNum in data source app
+    var matchingInfoIndexPage = []; //for the index page
+    var aTagArrayIndexPage = []; //for the index page
+    var validLookup, attemptedLookup = false;
 
 
     //Given the className and the field label find the element that is the text field the user chose in the plugin setting page
@@ -43,6 +46,8 @@ jQuery.noConflict();
     var attachAttributes = function(field){
         field.setAttribute("id", "setTextField");
         field.children[1].children[0].setAttribute("id", "divButton");
+
+        field.children[1].children[0].children[0].setAttribute("id", "inputField");
     };
 
     //Add the lookup and clear buttons 
@@ -146,6 +151,18 @@ jQuery.noConflict();
 
     //set the value
     var setValue = function(setTextFieldElement){
+        $('#myModal').click(function(event){
+            console.log("Outside");
+            $('#myModal').modal('hide');
+            $('#myModal').detach();
+            //validLookup = true;
+        });
+
+        $('.modal-content').click(function(event){
+            console.log("Inside");
+            event.stopPropagation();
+        });
+
         let previousTarget = '';
         $('.options').click(function(e){
             if(previousTarget){
@@ -163,15 +180,17 @@ jQuery.noConflict();
                 $('#myModal').detach();
                 setTextFieldElement.children[1].children[0].children[0].value = selectedItem.value;
                 localStorage.setItem("DataSourceRecordNum", selectedItem.recordNum);
+                validLookup = true;
             } else {
                 alert('Select one value');
             }
         });
     };
-
+    
 //////////////////////////////////////
     kintone.events.on(['app.record.create.show', 'app.record.edit.show'], function(event) {
         var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+
         attachAttributes(setTextFieldElement);
         addLookupClear(setTextFieldElement);
 
@@ -180,17 +199,18 @@ jQuery.noConflict();
             "fields": dataSourceFieldCodes
         };
 
-        $('#lookup').click(function(e){
-            kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                sourceRecords = resp.records;
-                if(sourceRecords.length > 0){
-                    if(Object.values(sourceRecords[0])[0].type !== "RECORD_NUMBER"){
-                        sourceRecords = bringRecordNumFirst(sourceRecords);
-                    }
-                    if(setTextFieldElement.children[1].children[0].children[0].value){
+        $(document).on("click keypress", "#lookup, #inputField", function(e){
+            if(e.target.id === "lookup" || e.keyCode === 13){
+                kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                    sourceRecords = resp.records;
+                    if(sourceRecords.length > 0){
+                        if(Object.values(sourceRecords[0])[0].type !== "RECORD_NUMBER"){
+                            sourceRecords = bringRecordNumFirst(sourceRecords);
+                        }
+                        
                         queryCriteriaArray = createCriteriaArray(setTextFieldElement.children[1].children[0].children[0].value);
                         var matchedRecordArray = [];//store all matched data and its entire record
-
+    
                         for(let record of sourceRecords){
                             if(includesCriteria(record, queryCriteriaArray) && !matchedRecordArray.includes(record)){
                                 matchedRecordArray.push(record);
@@ -198,35 +218,78 @@ jQuery.noConflict();
                         }
                         console.log(matchedRecordArray);
         
-                        createPopupContent(matchedRecordArray);
-                        setValue(setTextFieldElement);
-                        matchedRecordArray = [];
+                        if(matchedRecordArray.length > 0){
+                            createPopupContent(matchedRecordArray);
+                            setValue(setTextFieldElement);
+                            matchedRecordArray = [];    
+                        } else {
+                            console.log(event);
+                            event.record[textField.code].error = 'No records matched.';
+    //Show this message if there is no matched records.
+                            //return event;
+                        }
+    
+                        setTextFieldElement.children[1].children[0].children[0].onchange = function(e){
+                            if(e.target.value === selectedItem.value){
+                                validLookup = true;
+                            } else {
+                                validLookup = false;
+                                attemptedLookup = true;
+                            }
+                        };
                     }
-                }
-            });
+                });
+            }
         });
 
         $('#clear').click(function(e){
             setTextFieldElement.children[1].children[0].children[0].value = "";
-            selectedItem = "";
-        })
+            selectedItem.recordNum = "";
+            selectedItem.value = "";
+            localStorage.removeItem("DataSourceRecordNum");
+            validLookup = true;
+        });
+
+        //return event;
     });
 
+    //Check the lookup field input
+    kintone.events.on(['app.record.create.submit', 'app.record.edit.submit'], function(event){
+        if(!validLookup){
+            if(!event.record[textField.code].value && attemptedLookup){
+            //when the value is empty
+                event.record[textField.code].error = 'To clear the looked up data, click "Clear".';
+            } else if(!event.record[textField.code].value && !attemptedLookup){
+                return event;
+            } else {
+                event.record[textField.code].error = 'Click "Lookup" to get the latest data.';
+            }
+            event.error = "Invalid Lookup Input.";
+        }
+        return event;
+    });
+
+var bodyApiAfterRecordEdit, methodApiAfterRecordEdit = '';
+    //Update/Create the maching info in the dummy app
     kintone.events.on(['app.record.create.submit.success', 'app.record.edit.submit.success'], function(event){
-        var matchingInfo = []; //index: recordNum in main app / value: recordNum in data source app
+        //alert("success");
+        
         var DataSourceRecordNum = localStorage.getItem("DataSourceRecordNum");
-        body = {
-            "app": dummyAppId
-        };
 
-        var promise = new Promise(function(resolve, reject){
-            kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                console.log(resp);
+        if(DataSourceRecordNum){
+            validLookup = false;
+            var method = '';
+            body = {
+                "app": dummyAppId
+            };
 
+            kintone.api('/k/v1/records', 'GET', body).then(function(resp) {
                 if(resp.records.length > 0){
                 //when there is a matching info
+                    method = "PUT";
+                    //methodApiAfterRecordEdit = "PUT";
                     matchingInfo = JSON.parse(resp.records[0].recordMatchingInfo.value);
-                    matchingInfo[event.recordId] = DataSourceRecordNum;
+                    matchingInfo[event.record.$id.value] = DataSourceRecordNum;
 
                     body = {
                         "app": dummyAppId,
@@ -237,14 +300,20 @@ jQuery.noConflict();
                             }
                         }
                     };
-
-                    kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', body, function(resp) {
-                        console.log(resp);
-                        resolve("Matching info exists at submit success");
-                    });
+                    // bodyApiAfterRecordEdit = {
+                    //     "app": dummyAppId,
+                    //     "id": resp.records[0].Record_number.value,
+                    //     "record": {
+                    //         "recordMatchingInfo": {
+                    //             "value": JSON.stringify(matchingInfo)
+                    //         }
+                    //     }
+                    // };
                 } else {
                 //no matching info
-                    matchingInfo[event.recordId] = DataSourceRecordNum;
+                    method = "POST";
+                    //methodApiAfterRecordEdit = "POST"; 
+                    matchingInfo[event.record.$id.value] = DataSourceRecordNum;
 
                     body = {
                         "app": dummyAppId,
@@ -254,27 +323,49 @@ jQuery.noConflict();
                             }
                         }
                     };
-
-                    kintone.api(kintone.api.url('/k/v1/record', true), 'POST', body, function(resp) {
-                        console.log(resp);
-                        resolve("No matching info at submit success");
-                    }, function(error) {
-                        // error
-                        console.log(error);
-                    });
+                    // bodyApiAfterRecordEdit = {
+                    //     "app": dummyAppId,
+                    //     "record": {
+                    //         "recordMatchingInfo": {
+                    //             "value": JSON.stringify(matchingInfo)
+                    //         }
+                    //     }
+                    // };
                 }
-            });
-        });
+            }).then(function(result){
+//This part goes after detail.show
+                kintone.api(kintone.api.url('/k/v1/record', true), method, body, function(resp) {
+                //     if(event.type === 'app.record.edit.submit.success'){
+                //         var appendURL = false;
+                //         var DataSourceRecordNum = matchingInfo[event.record.$id.value];
 
-        promise.then(function(result){
-            console.log(result);
-        }, function(err){
-            console.log(err);
-        });
+                //         if(DataSourceRecordNum){
+                //             appendURL = true;
+                //         }
+                //         if(appendURL){
+                //             var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+            
+                //             var aTag = document.createElement("a");
+                //             //alert("what is this" + DataSourceRecordNum);
+                //             aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
+                //             aTag.setAttribute("target", "_blank");
+            
+                //             var content = setTextFieldElement.children[1].children[0];
+                //             content.remove();
+                //             setTextFieldElement.children[1].appendChild(aTag);
+                //             setTextFieldElement.children[1].children[0].appendChild(content);
+                //         }
+                //     }
+                });
+            });
+        }
     });
 
     kintone.events.on('app.record.detail.show', function(event){
-        var matchingInfo = []; //index: recordNum in main app / value: recordNum in data source app
+        //update/initialize the matchingInfo here instead of in the record.create/edit.success
+        //kintone.api(kintone.api.url('/k/v1/record', true), bodyApiAfterRecordEdit, methodApiAfterRecordEdit, function(resp) {});
+        
+        localStorage.removeItem("DataSourceRecordNum");
         var DataSourceRecordNum = -1;
         var appendURL = false;
         body = {
@@ -283,14 +374,15 @@ jQuery.noConflict();
         
         var promise = new Promise(function(resolve, reject){
             kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                console.log(resp);
-
                 if(resp.records.length > 0){
                 //when there is a matching info
                     resolve("Matching info exists at detail");
 
                     matchingInfo = JSON.parse(resp.records[0].recordMatchingInfo.value);
-                    DataSourceRecordNum = matchingInfo[event.recordId];
+
+    console.log(matchingInfo);
+
+                    DataSourceRecordNum = matchingInfo[event.record.$id.value];
                     if(DataSourceRecordNum){
                         appendURL = true;
                     }
@@ -302,8 +394,6 @@ jQuery.noConflict();
         });
 
         promise.then(function(result){
-            console.log(result);
-
             if(appendURL){
                 var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
 
@@ -321,46 +411,84 @@ jQuery.noConflict();
         });
     });
 
-    kintone.events.on('app.record.index.show', function(event){
-        if(event.records.length > 0){
-            var elementsFieldCode = kintone.app.getFieldElements(textField.code);
-            setTextFieldUniqueClassName = elementsFieldCode[0].className.match(/value-\d+/g)[0]; //regex: "value..."
+    kintone.events.on(['app.record.detail.delete.submit'], function(event){
+        var promise = new Promise(function(resolve, reject){
+            body = {
+                "app": dummyAppId
+            };
+            kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                if(resp.records.length > 0){
+                    matchingInfo = JSON.parse(resp.records[0].recordMatchingInfo.value);
+                    matchingInfo[event.record.$id.value] = null;
 
+                    body = {
+                        "app": dummyAppId,
+                        "id": resp.records[0].Record_number.value,
+                        "record": {
+                            "recordMatchingInfo": {
+                                "value": JSON.stringify(matchingInfo)
+                            }
+                        }
+                    };
+
+                    kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', body, function(resp) {
+                        resolve("Deletion updated");
+                    });
+                } else {
+                    alert("No matching info");
+                }
+            });
+        });
+
+        promise.then(function(result){
+            console.log(result);
+        }, function(err){
+            console.log(err);
+        });
+    });
+
+    var mainAppRecords;
+    kintone.events.on(['app.record.index.show', 'app.record.index.edit.submit.success'], function(event){
+        if(event.type === 'app.record.index.show'){
+            mainAppRecords = event.records;
+        }
+
+        if(mainAppRecords.length > 0){
             body = {
                 "app": dummyAppId
             };
             
             var promise = new Promise(function(resolve, reject){
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                    console.log(resp);
+                    var elementsByFieldCode = kintone.app.getFieldElements(textField.code);
+                    setTextFieldUniqueClassName = elementsByFieldCode[0].className.match(/value-\d+/g)[0];
 
                     if(resp.records.length > 0){
                     //when there is a matching info
                         resolve("Matching info exists");
 
-                        var matchingInfo = JSON.parse(resp.records[0].recordMatchingInfo.value); //index: recordNum in main app / value: recordNum in data source app
-//this matchingInfo array should not contain the deleted element
-                        console.log(matchingInfo);
-                        var mainAppRecords = event.records;
+                        matchingInfoIndexPage = JSON.parse(resp.records[0].recordMatchingInfo.value); //index: recordNum in main app / value: recordNum in data source app
                         var DataSourceRecordNum = -1;
-
                         var aTag, content;
+
                         for(let key in mainAppRecords){
-                            DataSourceRecordNum = matchingInfo[mainAppRecords[key].Record_number.value];
+                            DataSourceRecordNum = matchingInfoIndexPage[mainAppRecords[key].$id.value];
 
                             if(DataSourceRecordNum){
-                                //Assume the order of mainAppRecords corresponds to the order of elementsFieldCode
-                                setTextFieldElement = elementsFieldCode[key];
-                                
-                                aTag = document.createElement("a");
-                                aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
-                                aTag.setAttribute("target", "_blank");
-                
+                                //Assume the order of mainAppRecords is the same as the order of elementsFieldCode
+                                setTextFieldElement = elementsByFieldCode[key];
                                 content = setTextFieldElement.children[0].children[0];
-                                aTag.textContent = content.textContent;
-                                content.remove();
-                                setTextFieldElement.children[0].appendChild(aTag);
-                                aTagArray[mainAppRecords[key].Record_number.value] = aTag;
+
+                                if(content.tagName !== "A"){
+                                    aTag = document.createElement("a");
+                                    aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
+                                    aTag.setAttribute("target", "_blank");
+                    
+                                    aTag.textContent = content.textContent;
+                                    content.remove();
+                                    setTextFieldElement.children[0].appendChild(aTag);
+                                    aTagArrayIndexPage[mainAppRecords[key].$id.value] = aTag;
+                                }
                             }
                         }
                     } else {
@@ -378,63 +506,23 @@ jQuery.noConflict();
         }
     });
 
-    kintone.events.on('app.record.index.edit.show', function(event){
-        if(aTagArray[event.record.Record_number.value]){
+    kintone.events.on('app.record.index.edit.show', function(event){        
+        if(aTagArrayIndexPage[event.record.$id.value]){
             setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
             setTextFieldElement.setAttribute("title","Not editable.");
             setTextFieldElement.setAttribute("class", "recordlist-cell-gaia recordlist-single_line_text-gaia " + setTextFieldUniqueClassName);
             setTextFieldElement.children[0].setAttribute("class", "line-cell-gaia recordlist-ellipsis-gaia");
             setTextFieldElement.children[0].children[0].remove();
-            setTextFieldElement.children[0].appendChild(aTagArray[event.record.Record_number.value]);
+            setTextFieldElement.children[0].appendChild(aTagArrayIndexPage[event.record.$id.value]);
+        } else {
+            setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
+            console.log(setTextFieldElement);
+            setTextFieldElement.children[0].children[0].disabled = true;
         }
     });
 
-    kintone.events.on('app.record.index.edit.submit.success', function(event){
-        location.reload();
-
-        // console.log(event);
-        // console.log(kintone.app.getFieldElements(textField.code));
-
-        // if(aTagArray[event.record.Record_number.value]){
-
-        // }
-    });
-
-    kintone.events.on(['app.record.detail.delete.submit'], function(event){
-        var promise = new Promise(function(resolve, reject){
-            body = {
-                "app": dummyAppId
-            };
-            kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                console.log(resp);
-
-                matchingInfo = JSON.parse(resp.records[0].recordMatchingInfo.value);
-//empty the element at the index of this record number
-                matchingInfo[event.recordId] = null;
-                alert("stop");
-
-                body = {
-                    "app": dummyAppId,
-                    "id": resp.records[0].Record_number.value,
-                    "record": {
-                        "recordMatchingInfo": {
-                            "value": JSON.stringify(matchingInfo)
-                        }
-                    }
-                };
-
-                kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', body, function(resp) {
-                    console.log(resp);
-                    resolve("Delete update");
-                });
-                
-            });
-        });
-
-        promise.then(function(result){
-            console.log(result);
-        }, function(err){
-            console.log(err);
-        });
+    kintone.events.on('app.record.index.delete.submit', function(event){
+        aTagArrayIndexPage[event.record.$id.value] = null;
+        matchingInfoIndexPage[event.record.$id.value] = null;
     });
 })(jQuery, kintone.$PLUGIN_ID); 
