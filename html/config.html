@@ -35,10 +35,10 @@
     </div>
 
     <div class="block">
-        <div class="kintoneplugin-row">{{html:kintoneApps.title}}</div>
+        <div class="kintoneplugin-row">{{html:dummyApp.title}}</div>
         <div class="kintoneplugin-select-outer">
             <div class="kintoneplugin-select">
-                <select id="{{:kintoneApps.id}}"><option value=""> ----- </option>
+                <select id="{{:dummyApp.id}}"><option value=""> ----- </option>
                     {{for kintoneApps.fields}}
                     <option value="{{html:appId}}">{{html:name}}</option>
                     {{/for}}
@@ -48,10 +48,10 @@
     </div>
 
     <div class="block">
-        <div class="kintoneplugin-row">{{html:dummyApp.title}}</div>
+        <div class="kintoneplugin-row">{{html:kintoneApps.title}}</div>
         <div class="kintoneplugin-select-outer">
             <div class="kintoneplugin-select">
-                <select id="{{:dummyApp.id}}"><option value=""> ----- </option>
+                <select id="{{:kintoneApps.id}}"><option value=""> ----- </option>
                     {{for kintoneApps.fields}}
                     <option value="{{html:appId}}">{{html:name}}</option>
                     {{/for}}
