@@ -20,10 +20,10 @@ jQuery.noConflict();
     var setTextFieldUniqueClassName = '';
     var matchingInfoIndexPage = [];
     var aTagArrayIndexPage = [];
+    var mainAppRecords =[];
 
     //Used across the record.create/edit events
     var validLookup = false;
-
 
 
     var regexCommaSpace = /, | , | ,/g;
@@ -42,7 +42,7 @@ jQuery.noConflict();
         return field;
     };
 
-    //attach some attributes to the user-selected field
+    //Attach attributes to the user-selected field
     var attachAttributes = function(field){
         field.setAttribute("id", "setTextField");
         field.children[1].children[0].setAttribute("id", "divButton");
@@ -92,7 +92,7 @@ jQuery.noConflict();
         return array;
     };
 
-    //given the key and value, create an object
+    //Given the key and value, create an object
     var toObject = function(k, v){
         var o = {};
         for(let key in k){
@@ -146,13 +146,13 @@ jQuery.noConflict();
         addModal(popup);
     };
     
-    //add teh pop up window to the body and show it
+    //Add teh pop up window to the body and show it
     var addModal = function(popup){
         $('body').append(popup);
         $('#myModal').modal('show');
     };
 
-    //set the value
+    //Set the value
     var setValue = function(setTextFieldElement, selectedItem){
         $('#myModal').click(function(event){
             console.log("Outside");
@@ -188,19 +188,15 @@ jQuery.noConflict();
             }
         });
     };
-    
-//////////////////////////////////////
-    //generate the pop up window based on the query and get the record number of the selected record
+
+///////////////////////////////////////////////////////////////
+
+    //Generate the pop up window based on the query and get the record number of the selected record
     kintone.events.on(['app.record.create.show', 'app.record.edit.show'], function(event) {
         var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
 
         attachAttributes(setTextFieldElement);
         addLookupClear(setTextFieldElement);
-
-        body = {
-            "app": dataSourceAppId,
-            "fields": dataSourceFieldCodes
-        };
 
         var selectedItem = {
             "value":'', 
@@ -210,8 +206,12 @@ jQuery.noConflict();
         var sourceRecords = [];
         $(document).on("click keypress", "#lookup, #inputField", function(e){
             if(e.target.id === "lookup" || e.keyCode === 13){
+                body = {
+                    "app": dataSourceAppId,
+                    "fields": dataSourceFieldCodes
+                };
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
-                    body = "";
+                    body = '';
                     sourceRecords = resp.records;
                     if(sourceRecords.length > 0){
                         if(Object.values(sourceRecords[0])[0].type !== "RECORD_NUMBER"){
@@ -328,7 +328,7 @@ jQuery.noConflict();
         }
     });
 
-    //update/initialize the matchingInfo and add the link to the record
+    //Update/Initialize the matchingInfo and add the link to the record
     kintone.events.on('app.record.detail.show', function(event){
         body = JSON.parse(localStorage.getItem("body"));
         var method = localStorage.getItem("method");
@@ -428,7 +428,7 @@ jQuery.noConflict();
         }
     });
 
-    //delete the matchingInfo at the index of the record number of the deleted record 
+    //Delete the matchingInfo at the index of the record number of the deleted record 
     kintone.events.on(['app.record.detail.delete.submit'], function(event){
         var promise = new Promise(function(resolve, reject){
             body = {
@@ -467,8 +467,8 @@ jQuery.noConflict();
         });
     });
 
+    //
     kintone.events.on(['app.record.index.show', 'app.record.index.edit.submit.success'], function(event){
-        var mainAppRecords;
         if(event.type === 'app.record.index.show'){
             mainAppRecords = event.records;
         }
