@@ -11,19 +11,19 @@ jQuery.noConflict();
     var dummyAppId = config.dummyAppId;
     var dataSourceFieldCodes = JSON.parse(config.dataSourceFieldCodes);//Array of the field code of the selected data source fields
     var textField = JSON.parse(config.textField);
-
     
-    // var selectedItem = {
-    //     "value":'', 
-    //     "recordNum": -1
-    // };
-    //Those variables are used across the multiple events
+    //Those variables are over-written across the multiple events
     var body = "";
     var matchingInfo = []; //index: recordNum in main app / value: recordNum in data source app
-    var setTextFieldUniqueClassName, setTextFieldElement;
-    var matchingInfoIndexPage = []; //for the index page
-    var aTagArrayIndexPage = []; //for the index page
+
+    //Used across the index page events
+    var setTextFieldUniqueClassName = '';
+    var matchingInfoIndexPage = [];
+    var aTagArrayIndexPage = [];
+
+    //Used across the record.create/edit events
     var validLookup = false;
+
 
 
     var regexCommaSpace = /, | , | ,/g;
@@ -158,7 +158,6 @@ jQuery.noConflict();
             console.log("Outside");
             $('#myModal').modal('hide');
             $('#myModal').detach();
-            //validLookup = true;
         });
 
         $('.modal-content').click(function(event){
@@ -212,6 +211,7 @@ jQuery.noConflict();
         $(document).on("click keypress", "#lookup, #inputField", function(e){
             if(e.target.id === "lookup" || e.keyCode === 13){
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                    body = "";
                     sourceRecords = resp.records;
                     if(sourceRecords.length > 0){
                         if(Object.values(sourceRecords[0])[0].type !== "RECORD_NUMBER"){
@@ -302,6 +302,7 @@ jQuery.noConflict();
                             }
                         }
                     };
+                    matchingInfo = [];
                 } else {
                 //no matching info
                     alert("Set Initialize_1-success");
@@ -317,6 +318,7 @@ jQuery.noConflict();
                             }
                         }
                     };
+                    matchingInfo = [];
                 }
                 alert("localStorage_2");
                 localStorage.setItem("body", JSON.stringify(body));
@@ -347,6 +349,7 @@ jQuery.noConflict();
                 
                 var promise = new Promise(function(resolve, reject){
                     kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                        body = "";
                         if(resp.records.length > 0){
                         //when there is a matching info
                             resolve("Matching info exists at detail");
@@ -355,6 +358,7 @@ jQuery.noConflict();
                             if(DataSourceRecordNum){
                                 appendURL = true;
                             }
+                            matchingInfo = [];
                         } else {
                         //no matching info
                             reject("No matching info at detail");
@@ -390,6 +394,7 @@ jQuery.noConflict();
             
             var promise = new Promise(function(resolve, reject){
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                    body = "";
                     if(resp.records.length > 0){
                     //when there is a matching info
                         resolve("Matching info exists at detail");
@@ -398,6 +403,7 @@ jQuery.noConflict();
                         if(DataSourceRecordNum){
                             appendURL = true;
                         }
+                        matchingInfo = [];
                     } else {
                     //no matching info
                         reject("No matching info at detail");
@@ -442,8 +448,10 @@ jQuery.noConflict();
                             }
                         }
                     };
+                    matchingInfo = [];
 
                     kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', body, function(resp) {
+                        body = "";
                         resolve("Deletion updated");
                     });
                 } else {
@@ -472,6 +480,7 @@ jQuery.noConflict();
             
             var promise = new Promise(function(resolve, reject){
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
+                    body = "";
                     var elementsByFieldCode = kintone.app.getFieldElements(textField.code);
                     setTextFieldUniqueClassName = elementsByFieldCode[0].className.match(/value-\d+/g)[0];
 
@@ -488,7 +497,7 @@ jQuery.noConflict();
 
                             if(DataSourceRecordNum){
                                 //The order of mainAppRecords is the same as the order of elementsFieldCode
-                                setTextFieldElement = elementsByFieldCode[key];
+                                var setTextFieldElement = elementsByFieldCode[key];
                                 content = setTextFieldElement.children[0].children[0];
 
                                 if(content.tagName !== "A"){
@@ -520,15 +529,14 @@ jQuery.noConflict();
 
     kintone.events.on('app.record.index.edit.show', function(event){        
         if(aTagArrayIndexPage[event.record.$id.value]){
-            setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
+            var setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
             setTextFieldElement.setAttribute("title","Not editable.");
             setTextFieldElement.setAttribute("class", "recordlist-cell-gaia recordlist-single_line_text-gaia " + setTextFieldUniqueClassName);
             setTextFieldElement.children[0].setAttribute("class", "line-cell-gaia recordlist-ellipsis-gaia");
             setTextFieldElement.children[0].children[0].remove();
             setTextFieldElement.children[0].appendChild(aTagArrayIndexPage[event.record.$id.value]);
         } else {
-            setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
-            console.log(setTextFieldElement);
+            var setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
             setTextFieldElement.children[0].children[0].disabled = true;
         }
     });
