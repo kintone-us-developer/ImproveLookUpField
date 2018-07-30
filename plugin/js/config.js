@@ -13,7 +13,7 @@ jQuery.noConflict();
             pluginSubmit: '     Save   ',
             apps: 'Select the data source app. (You will fetch data from this app.)',
             matching: 'Create one additional app with no fields and select the app here.',
-            dataSourceFields: 'Select the data source field(s)<Key Fields>. Hold your command key to select mupltiple fields.',
+            keyFields: 'Select the data source field(s)<Key Fields>. Hold your command key to select mupltiple fields.',
             textKintoneFields: 'Please follow the steps below.',
             fieldMappings: 'Field Mappings'
         }
@@ -21,21 +21,202 @@ jQuery.noConflict();
 
     var lang = kintone.getLoginUser().language;
     var i18n = (lang in terms) ? terms[lang] : terms['en'];
-
-    var textMappable = ['SINGLE_LINE_TEXT', 'RADIO_BUTTON', 'DROP_DOWN']; //+'NUMBER' && handle lookup
-    var numberMappable = ['NUMBER', 'CALC', 'RECORD_NUMBER'];//handle lookup
     
+    //field types available to be a destination field in the field mappings
+    var availableDestionationTypes = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT', 'RICH_TEXT', 'RADIO_BUTTON', 'DROP_DOWN', 'LINK', 'DATE',
+        'TIME', 'DATETIME', 'USER_SELECT', 'ORGANIZATION_SELECT', 'GROUP_SELECT'];
+    //mappable source field types to the specofied destination field type (Destination to Source)
+    var textMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'RADIO_BUTTON', 'DROP_DOWN'];
+    var numberMappableDtoS = ['NUMBER', 'CALC', 'RECORD_NUMBER'];
+    var textAreaMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT'];
+    var richTextMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT', 'RICH_TEXT'];
+    var radioButtonMappableDtoS = ['RADIO_BUTTON'];
+    var dropDownMappableDtoS = ['DROP_DOWN'];
+    var linkMappableDtoS = ['LINK'];
+    var dateMappableDtoS = ['DATE'];
+    var timeMappableDtoS = ['TIME'];
+    var dateAndTimeMappableDtoS = ['DATETIME', 'CREATED_TIME', 'UPDATED_TIME'];
+    var userMappableDtoS = ['USER_SELECT', 'CREATOR', 'MODIFIER'];
+    var departmentMappableDtoS = ['ORGANIZATION_SELECT'];
+    var groupMapplableDtoS = ['GROUP_SELECT'];
+    //field types available to be a source field in the field mappings
+    var availableSourceTypes = ['SINGLE_LINE_TEXT', 'NUMBER', 'RADIO_BUTTON', 'DROP_DOWN', 'CALC', 'RECORD_NUMBER',
+     'MULTI_LINE_TEXT', 'RICH_TEXT', 'LINK', 'DATE', 'TIME', 'DATETIME', 'CREATED_TIME', 'UPDATED_TIME', 'CREATOR', 'MODIFIER',
+      'USER_SELECT', 'ORGANIZATION_SELECT', 'GROUP_SELECT'];
+    //mappable destination field types to the specofied source field type
+    var textMappableStoD = ['SINGLE_LINE_TEXT', 'MULTI_LINE_TEXT', 'RICH_TEXT'];
+    var numberMappableStoD = ['NUMBER'];
+    var textAreaMappableStoD = ['MULTI_LINE_TEXT', 'RICH_TEXT'];
+    var richTextMappableStoD = ['RICH_TEXT'];
+    var radioButtonMappableStoD = ['SINGLE_LINE_TEXT', 'RADIO_BUTTON'];
+    var dropDownMappableStoD = ['SINGLE_LINE_TEXT', 'DROP_DOWN'];
+    var linkMappableStoD = ['LINK'];
+    var dateMappableStoD = ['DATE'];
+    var timeMappableStoD = ['TIME'];
+    var dateAndTimeMappableStoD = ['DATETIME'];
+    var userMappableStoD = ['USER_SELECT'];
+    var departmentMappableStoD = ['ORGANIZATION_SELECT'];
+    var groupMapplableStoD = ['GROUP_SELECT'];
+    var calculatedMappableStoD = ['NUMBER'];
+    var recordNumberMappableStoD = ['NUMBER'];
+    var createdDateTimeMappableStoD = ['DATETIME'];
+    var updatedDateTimeMappableStoD = ['DATETIME'];
+    var createdByMappableStoD = ['USER_SELECT'];
+    var updatedByMappableStoD = ['USER_SELECT'];
+
+    var updateFieldMappingList = function(id, fieldType, originalFields){
+        switch (fieldType){
+            case "SINGLE_LINE_TEXT":
+                if(id === "#source"){
+                    changeList(id, textMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, textMappableStoD, originalFields);
+                }
+                break;
+            case "NUMBER":
+                if(id === "#source"){
+                    changeList(id, numberMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, numberMappableStoD, originalFields);
+                }
+                break;
+            case "MULTI_LINE_TEXT":
+                if(id === "#source"){
+                    changeList(id, textAreaMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, textAreaMappableStoD, originalFields);
+                }
+                break;
+            case "RICH_TEXT":
+                if(id === "#source"){
+                    changeList(id, richTextMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, richTextMappableStoD, originalFields);
+                }
+                break;
+            case "RADIO_BUTTON":
+                if(id === "#source"){
+                    changeList(id, radioButtonMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, radioButtonMappableStoD, originalFields);
+                }
+                break;
+            case "DROP_DOWN":
+                if(id === "#source"){
+                    changeList(id, dropDownMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, dropDownMappableStoD, originalFields);
+                }
+                break;
+            case "LINK":
+                if(id === "#source"){
+                    changeList(id, linkMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, linkMappableStoD, originalFields);
+                }
+                break;
+            case "DATE":
+                if(id === "#source"){
+                    changeList(id, dateMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, dateMappableStoD, originalFields);
+                }
+                break;
+            case "TIME":
+                if(id === "#source"){
+                    changeList(id, timeMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, timeMappableStoD, originalFields);
+                }
+                break;
+            case "DATETIME":
+                if(id === "#source"){
+                    changeList(id, dateAndTimeMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, dateAndTimeMappableStoD, originalFields);
+                }
+                break;
+            case "USER_SELECT":
+                if(id === "#source"){
+                    changeList(id, userMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, userMappableStoD, originalFields);
+                }
+                break;
+            case "ORGANIZATION_SELECT":
+                if(id === "#source"){
+                    changeList(id, departmentMappableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, departmentMappableStoD, originalFields);
+                }
+                break;
+            case "GROUP_SELECT":
+                if(id === "#source"){
+                    changeList(id, groupMapplableDtoS, originalFields);
+                } else if(id === "#destination"){
+                    changeList(id, groupMapplableStoD, originalFields);
+                }
+                break;
+            case 'CALC':
+                if(id === "#destination"){
+                    changeList(id, calculatedMappableStoD, originalFields);
+                }
+                break;
+            case 'RECORD_NUMBER':
+                if(id === "#destination"){
+                    changeList(id, recordNumberMappableStoD, originalFields);
+                }
+                break;
+            case 'CREATED_TIME':
+                if(id === "#destination"){
+                    changeList(id, createdDateTimeMappableStoD, originalFields);
+                }
+                break;
+            case 'UPDATED_TIME':
+                if(id === "#destination"){
+                    changeList(id, updatedDateTimeMappableStoD, originalFields);
+                }
+                break;
+            case 'CREATOR':
+                if(id === "#destination"){
+                    changeList(id, createdByMappableStoD, originalFields);
+                }
+                break;
+            case 'MODIFIER':
+                if(id === "#destination"){
+                    changeList(id, updatedByMappableStoD, originalFields);
+                }
+                break;
+            default:
+                alert("somethig else");
+                break;
+        }
+    };
+
+    var changeList = function(id, mappableTypes, originalSources){
+        Array.from($(id).children('option:not(:first)').remove());
+        originalSources.forEach(function(source){
+            if(mappableTypes.includes(source.type)){
+                var option = '<option value="' + source.code + '">' + source.label + ' [' + source.type + ']</option>';
+                $(id).append(option);
+            }
+        });
+    }
 
     // append events
     var appendEvents = function appendEvents(fields) {
         // save plug-in settings
-        var configTemplateItems = '';
+        var configTemplateItems = null;
+        var originalSourceFields = [];
+        var originalDestinationFields = [];
         $('#submit').click(function() {
             var config = {};
             config.activation = $('#activation').prop('checked') ? 'active' : 'deactive';
             config.dataSourceAppId = $('#dataSourceAppId').val();
             config.dummyAppId = $('#dummyAppId').val();
-            config.templateItems = configTemplateItems;
+            if(configTemplateItems){
+                config.templateItems = configTemplateItems;
+            }
             var textFieldCode = $('#textField').val();
 
             fields.textFields.forEach(function(e){
@@ -44,15 +225,17 @@ jQuery.noConflict();
                 }
             });
             
-            var tempDataSource = $("#dataSourceFieldsId").val();
-            if(tempDataSource){
-                if(!tempDataSource.includes(fields.recordNumField.code)){
-                    tempDataSource.unshift(fields.recordNumField.code); //move the record number to the beginning of the array
+            var tempKeyFields = $("#keyFieldId").val();
+            if(tempKeyFields){
+                if(!tempKeyFields.includes(fields.recordNumField.code)){
+                    tempKeyFields.unshift(fields.recordNumField.code); //move the record number to the beginning of the array
                 }
             }
-            config.dataSourceFieldCodes = JSON.stringify(tempDataSource);
+            config.keyFieldCodes = JSON.stringify(tempKeyFields);
 
-            if(config.dummyAppId && config.dataSourceAppId && config.templateItems){
+            if(config.textField && config.dummyAppId && config.dataSourceAppId && config.templateItems){
+                alert("hello");
+                config.fieldMappings = JSON.stringify({"destinatioFieldCode": $("#destination").val(), "sourceFieldCode": $("#source").val()});
                 var body = {
                     "app": config.dummyAppId
                 };
@@ -71,10 +254,8 @@ jQuery.noConflict();
                             }
                         };
                         
-                        kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'POST', body, function(resp) {
                         //create a field in the dummy app
-                            console.log(resp);
-            
+                        kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'POST', body, function(resp) {
                             body = {
                                 "apps":[
                                     {
@@ -82,12 +263,15 @@ jQuery.noConflict();
                                     }
                                 ]
                             };
-            
-                            kintone.api(kintone.api.url('/k/v1/preview/app/deploy', true), 'POST', body, function(resp) {
                             //deploy the change
+                            kintone.api(kintone.api.url('/k/v1/preview/app/deploy', true), 'POST', body, function(resp) {
                                 console.log(resp);
                                 kintone.plugin.app.setConfig(config);
+                            }, function(error){
+                                console.log(error);
                             });
+                        }, function(error){
+                            console.log(error);
                         });
                     } else {
                         kintone.plugin.app.setConfig(config);
@@ -109,7 +293,7 @@ jQuery.noConflict();
         $('#dataSourceAppId').change(function() {
             var template  = $.templates(document.querySelector('#plugin-template-lookupSetting'));
             var templateItems = {
-                dataSourceFields:{}, 
+                keyFields:{}, 
                 pluginSubmit:'', 
                 pluginCancel:'',
                 fieldMappings: {
@@ -123,11 +307,20 @@ jQuery.noConflict();
                 }
             };
 
+            originalDestinationFields = templateItems.fieldMappings.destinationFields;
             var selectedAppId = $('#dataSourceAppId').val();
  
             kintone.api(kintone.api.url('/k/v1/preview/app/form/fields', true), 'GET', {
             'app': selectedAppId}, function(resp) {
-                templateItems.fieldMappings.sourceFields = Object.values(resp.properties);
+
+                var tempSources = Object.values(resp.properties);
+                tempSources.forEach(function(element){
+                    if(availableSourceTypes.includes(element.type)){
+                        originalSourceFields.push(element);
+                    }
+                })
+                templateItems.fieldMappings.sourceFields = originalSourceFields;
+
                 for (var key in resp.properties) {
                     var field = resp.properties[key];
                     var item = {
@@ -138,11 +331,11 @@ jQuery.noConflict();
                     fields.appFields.push(item);
                 }
 
-                templateItems.dataSourceFields = {
-                    title: i18n.dataSourceFields,
+                templateItems.keyFields = {
+                    title: i18n.keyFields,
                     require: '*',
                     row: '',
-                    id: 'dataSourceFieldsId',
+                    id: 'keyFieldId',
                     fields: fields.appFields
                 };
 
@@ -152,28 +345,21 @@ jQuery.noConflict();
                 $("#lookupSetting").remove();
 
                 $('#dataSourceApp').after(template(templateItems));
-                // $('#plugin-container').append(template(templateItems));
-
                 configTemplateItems = JSON.stringify(templateItems);
 
+//source <-> destination / if the --- is selected
+//Plus/Minus buttons
+//Have to have the same event listener even when the previous config exists and the element with the "dataSourceAppId" doesn't change
+//Users have to delete the field in the mappingInfo app every time they want to change the lookup setting in the plugin settings
+//Handle "Lookup: Only when the Text field is specified for Key Field" things.
+                var fieldType = '';
                 $("#destination, #source").on("change", function(event){
-                    if(event.target.id === "destination"){
-//Works only with the text destination field
-                        if(event.target.selectedOptions[0].text.match(/(?<=\[)(.*?)(?=\])/g)[0] === "SINGLE_LINE_TEXT"){
-                            var sourceOptions = Array.from($('#source').children('option:not(:first)').remove());
-
-                            sourceOptions.forEach(function(element){
-                                var type = element.text.match(/(?<=\[)(.*?)(?=\])/g)[0];
-                                if(textMappable.includes(type)){
-                                    var option = '<option value="' + element.value + '">' + element.text + '</option>';
-                                    $("#source").append(option);
-                                }
-                            });
-                        }
-                    } else if(event.target.id === "source"){
-
-                    } else {
-                        alert("somethig else");
+                    if(event.target.id === "destination" && $("#source")[0].selectedOptions[0].text === "-----"){
+                        fieldType = event.target.selectedOptions[0].text.match(/(?<=\[)(.*?)(?=\])/g)[0];
+                        updateFieldMappingList('#source', fieldType, originalSourceFields);
+                    } else if(event.target.id === "source" && $("#destination")[0].selectedOptions[0].text === "-----"){
+                        fieldType = event.target.selectedOptions[0].text.match(/(?<=\[)(.*?)(?=\])/g)[0];
+                        updateFieldMappingList('#destination', fieldType, originalDestinationFields);
                     }
                 });
         
@@ -227,6 +413,40 @@ jQuery.noConflict();
         };
         // render HTML
         $('#plugin-container').html(template(templateItems));
+
+// set existing values
+        var config = kintone.plugin.app.getConfig(PLUGIN_ID);
+        if (Object.keys(config).length > 0) {
+            $('#activation').prop('checked', config.activation === 'active');
+            $('#textField').val(JSON.parse(config.textField).code);
+            $('#dummyAppId').val(config.dummyAppId);
+            $('#dataSourceAppId').val(config.dataSourceAppId);
+
+            var configTemplate = $.templates(document.querySelector('#plugin-template-lookupSetting'));
+            var configTemplateItems = JSON.parse(config.templateItems);
+            $('#dataSourceApp').after(configTemplate(configTemplateItems));
+            //$('#plugin-container').append(configTemplate(configTemplateItems));
+
+            var keyFieldCodes = config.keyFieldCodes;
+            $('#keyFieldId option').each(function(){
+                if(keyFieldCodes.includes($(this).val())){
+                    this.setAttribute("selected", "selected");
+                }
+            });
+
+            var fieldMappings = JSON.parse(config.fieldMappings);
+            $('#destination option').each(function(){
+                if(fieldMappings.destination === $(this).val()){
+                    this.setAttribute("selected", "selected");
+                }
+            });
+            $('#source option').each(function(){
+                if(fieldMappings.source === $(this).val()){
+                    this.setAttribute("selected", "selected");
+                }
+            });
+        }
+
         appendEvents(fields);
     }
 
@@ -268,11 +488,10 @@ jQuery.noConflict();
                     case 'RECORD_NUMBER':
                         fields.recordNumField = item;
                         break;
-                    case 'NUMBER' || 'MULTI_LINE_TEXT' || 'RICH_TEXT' || 'RADIO_BUTTON' || 'DROP_DOWN' || 'LINK' ||
-                            'DATE' || 'TIME' || 'DATETIME' || 'USER_SELECT' || 'ORGANIZATION_SELECT' || 'GROUP_SELECT':
-                        fields['mainAppFieldsForMappings'].push(item);  
-                        breal;
                     default:
+                        if(availableDestionationTypes.includes(field.type)){
+                            fields['mainAppFieldsForMappings'].push(item);  
+                        }
                         break;
                 }
             }

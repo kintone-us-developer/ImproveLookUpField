@@ -9,7 +9,7 @@ jQuery.noConflict();
     }
     var dataSourceAppId = config.dataSourceAppId;
     var dummyAppId = config.dummyAppId;
-    var dataSourceFieldCodes = JSON.parse(config.dataSourceFieldCodes);//Array of the field code of the selected data source fields
+    var keyFieldCodes = JSON.parse(config.keyFieldCodes);//Array of the field code of the selected data source fields
     var textField = JSON.parse(config.textField);
     
     //Those variables are over-written across the multiple events
@@ -22,39 +22,44 @@ jQuery.noConflict();
     var aTagArrayIndexPage = [];
     var mainAppRecords =[];
 
-///////////////////////////////////////////////////////////////
+
+    var fieldMapping = JSON.parse(config.fieldMappings);
+
 
     //Generate the pop up window based on the query and get the record number of the selected record
     kintone.events.on(['app.record.create.show', 'app.record.edit.show'], function(event) {
-        var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+        var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
 
-        attachAttributes(setTextFieldElement);
-        addLookupClear(setTextFieldElement);
+        attachAttributes(lookupElement);
+        addLookupClear(lookupElement);
 
         var selectedItem = {
             "value":'', 
             "recordNum": -1
         };
 
-        var sourceRecords = [];
+        var sourceRecordAll = [];
+        var sourceRecordFiltered = [];
         $(document).on("click keypress", "#lookup, #inputField", function(e){
             if(e.target.id === "lookup" || e.keyCode === 13){
                 body = {
-                    "app": dataSourceAppId,
-                    "fields": dataSourceFieldCodes
+                    "app": dataSourceAppId
+                    //,"fields": keyFieldCodes
                 };
                 kintone.api(kintone.api.url('/k/v1/records', true), 'GET', body, function(resp) {
                     body = '';
-                    sourceRecords = resp.records;
-                    if(sourceRecords.length > 0){
-                        if(Object.values(sourceRecords[0])[0].type !== "RECORD_NUMBER"){
-                            sourceRecords = bringRecordNumFirst(sourceRecords);
+                    sourceRecordAll = resp.records;
+                    sourceRecordFiltered = filterRecords(sourceRecordAll, keyFieldCodes);
+
+                    if(sourceRecordFiltered.length > 0){
+                        if(Object.values(sourceRecordFiltered[0])[0].type !== "RECORD_NUMBER"){
+                            sourceRecordFiltered = bringRecordNumFirst(sourceRecordFiltered);
                         }
                         
-                        var queryCriteriaArray = createCriteriaArray(setTextFieldElement.children[1].children[0].children[0].value);
+                        var queryCriteriaArray = createCriteriaArray(lookupElement.children[1].children[0].children[0].value);
                         var matchedRecordArray = [];//store all matched data and its entire record
     
-                        for(let record of sourceRecords){
+                        for(let record of sourceRecordFiltered){
                             if(includesCriteria(record, queryCriteriaArray) && !matchedRecordArray.includes(record)){
                                 matchedRecordArray.push(record);
                             }
@@ -63,7 +68,8 @@ jQuery.noConflict();
         
                         if(matchedRecordArray.length > 0){
                             createPopupContent(matchedRecordArray);
-                            getValue(setTextFieldElement, selectedItem);
+//Here: Place mapping value
+                            getValue(lookupElement, selectedItem, sourceRecordAll);
                             matchedRecordArray = [];    
                         } else {
                             event.record[textField.code].error = 'No records matched.';
@@ -71,7 +77,7 @@ jQuery.noConflict();
                             //return event;
                         }
     
-                        setTextFieldElement.children[1].children[0].children[0].onchange = function(e){
+                        lookupElement.children[1].children[0].children[0].onchange = function(e){
                             if(e.target.value === selectedItem.value){
                                 validLookup = true;
                             } else {
@@ -84,7 +90,7 @@ jQuery.noConflict();
         });
 
         $('#clear').click(function(e){
-            setTextFieldElement.children[1].children[0].children[0].value = "";
+            lookupElement.children[1].children[0].children[0].value = "";
             selectedItem.recordNum = "";
             selectedItem.value = "";
             localStorage.removeItem("DataSourceRecordNum");
@@ -202,16 +208,16 @@ jQuery.noConflict();
         
                 promise.then(function(result){
                     if(appendURL){
-                        var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+                        var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
         
                         var aTag = document.createElement("a");
                         aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
                         aTag.setAttribute("target", "_blank");
         
-                        var content = setTextFieldElement.children[1].children[0];
+                        var content = lookupElement.children[1].children[0];
                         content.remove();
-                        setTextFieldElement.children[1].appendChild(aTag);
-                        setTextFieldElement.children[1].children[0].appendChild(content);
+                        lookupElement.children[1].appendChild(aTag);
+                        lookupElement.children[1].children[0].appendChild(content);
                     }
                 });
             });
@@ -247,16 +253,16 @@ jQuery.noConflict();
     
             promise.then(function(result){
                 if(appendURL){
-                    var setTextFieldElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+                    var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
     
                     var aTag = document.createElement("a");
                     aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
                     aTag.setAttribute("target", "_blank");
     
-                    var content = setTextFieldElement.children[1].children[0];
+                    var content = lookupElement.children[1].children[0];
                     content.remove();
-                    setTextFieldElement.children[1].appendChild(aTag);
-                    setTextFieldElement.children[1].children[0].appendChild(content);
+                    lookupElement.children[1].appendChild(aTag);
+                    lookupElement.children[1].children[0].appendChild(content);
                 }
             });
         }
@@ -303,6 +309,13 @@ jQuery.noConflict();
 
     //
     kintone.events.on(['app.record.index.show', 'app.record.index.edit.submit.success'], function(event){
+        console.log(fieldMapping.destinatioFieldCode);
+        var destinationUniqueNumber = kintone.app.getFieldElements(fieldMapping.destinatioFieldCode)[0].className.match(/(?<=value-)(.*)/g)[0];
+        console.log(destinationUniqueNumber);
+        localStorage.setItem("destinationUniqueNumber", destinationUniqueNumber);
+
+
+
         if(event.type === 'app.record.index.show'){
             mainAppRecords = event.records;
         }
@@ -331,8 +344,8 @@ jQuery.noConflict();
 
                             if(DataSourceRecordNum){
                                 //The order of mainAppRecords is the same as the order of elementsFieldCode
-                                var setTextFieldElement = elementsByFieldCode[key];
-                                content = setTextFieldElement.children[0].children[0];
+                                var lookupElement = elementsByFieldCode[key];
+                                content = lookupElement.children[0].children[0];
 
                                 if(content.tagName !== "A"){
                                     aTag = document.createElement("a");
@@ -341,7 +354,7 @@ jQuery.noConflict();
                     
                                     aTag.textContent = content.textContent;
                                     content.remove();
-                                    setTextFieldElement.children[0].appendChild(aTag);
+                                    lookupElement.children[0].appendChild(aTag);
                                     aTagArrayIndexPage[mainAppRecords[key].$id.value] = aTag;
                                 }
                             }
@@ -363,15 +376,15 @@ jQuery.noConflict();
 
     kintone.events.on('app.record.index.edit.show', function(event){        
         if(aTagArrayIndexPage[event.record.$id.value]){
-            var setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
-            setTextFieldElement.setAttribute("title","Not editable.");
-            setTextFieldElement.setAttribute("class", "recordlist-cell-gaia recordlist-single_line_text-gaia " + setTextFieldUniqueClassName);
-            setTextFieldElement.children[0].setAttribute("class", "line-cell-gaia recordlist-ellipsis-gaia");
-            setTextFieldElement.children[0].children[0].remove();
-            setTextFieldElement.children[0].appendChild(aTagArrayIndexPage[event.record.$id.value]);
+            var lookupElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
+            lookupElement.setAttribute("title","Not editable.");
+            lookupElement.setAttribute("class", "recordlist-cell-gaia recordlist-single_line_text-gaia " + setTextFieldUniqueClassName);
+            lookupElement.children[0].setAttribute("class", "line-cell-gaia recordlist-ellipsis-gaia");
+            lookupElement.children[0].children[0].remove();
+            lookupElement.children[0].appendChild(aTagArrayIndexPage[event.record.$id.value]);
         } else {
-            var setTextFieldElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
-            setTextFieldElement.children[0].children[0].disabled = true;
+            var lookupElement = document.getElementsByClassName("recordlist-editcell-gaia recordlist-edit-single_line_text-gaia " + setTextFieldUniqueClassName)[0];
+            lookupElement.children[0].children[0].disabled = true;
         }
     });
 

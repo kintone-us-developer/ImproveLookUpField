@@ -86,7 +86,7 @@ var createCriteriaArray = function(criterias){
     return queryCriteria2.toUpperCase().split(",");
 };
 
-//Check if the record has any of criterias
+//Check if the record ,matches any of criterias
 var includesCriteria = function(record, criterias){ 
     let criteria = '';
     for(let property of Object.values(record)){
@@ -131,15 +131,13 @@ var addModal = function(popup){
 };
 
 //Set the value
-var getValue = function(setTextFieldElement, selectedItem){
-    jQuery('#myModal').click(function(event){
-        console.log("Outside");
+var getValue = function(lookupElement, selectedItem, sourceRecordAll){
+    jQuery('#myModal').click(function(){
         jQuery('#myModal').modal('hide');
         jQuery('#myModal').detach();
     });
 
     jQuery('.modal-content').click(function(event){
-        console.log("Inside");
         event.stopPropagation();
     });
 
@@ -158,12 +156,37 @@ var getValue = function(setTextFieldElement, selectedItem){
         if(selectedItem.value){
             jQuery('#myModal').modal('hide');
             jQuery('#myModal').detach();
-            setTextFieldElement.children[1].children[0].children[0].value = selectedItem.value;
+            lookupElement.children[1].children[0].children[0].value = selectedItem.value;
             localStorage.setItem("DataSourceRecordNum", selectedItem.recordNum);
             validLookup = true;
-            //return true;
+            
+            placeValue(sourceRecordAll);
         } else {
             alert('Select one value');
         }
     });
 };
+
+var placeValue = function(sourceRecordAll){
+    var destinationUniqueNumber = localStorage.getItem("destinationUniqueNumber");
+    var destinationClassName = ".value-" + destinationUniqueNumber;
+    console.log(jQuery(destinationClassName));
+    var valueHolderElement = jQuery(destinationClassName);
+
+    console.log(sourceRecordAll);
+};
+
+//Filter the given records by the given criteria field codes 
+var filterRecords = function(all, criterias){
+    var newArray = [];
+    var obj = {};
+
+    all.forEach(function(record){
+        criterias.forEach(function(criteria){
+            obj[criteria] = record[criteria];
+        });
+        newArray.push(obj);
+        obj = {};
+    });
+    return newArray;
+}
