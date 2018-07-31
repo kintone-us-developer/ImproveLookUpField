@@ -6,9 +6,10 @@ var validLookup = false;
 var regexCommaSpace = /, | , | ,/g;
 var regexBESpace = /^\s+|\s+jQuery|,+jQuery/g;
 
+var destinationElement = '';
+
 //Given the className and the field label find the element that is the text field the user chose in the plugin setting page
-function getSetTextField(className, label){
-// var getSetTextField = function(className, label){
+function getSetLookupField(className, label){
     var field = '';
     var fieldArray = Array.from(document.getElementsByClassName(className));
     for (let element of fieldArray){
@@ -131,7 +132,7 @@ var addModal = function(popup){
 };
 
 //Set the value
-var getValue = function(lookupElement, selectedItem, sourceRecordAll){
+var getValue = function(lookupElement, selectedItem, sourceRecordAll, sourceFieldCode){
     jQuery('#myModal').click(function(){
         jQuery('#myModal').modal('hide');
         jQuery('#myModal').detach();
@@ -156,24 +157,23 @@ var getValue = function(lookupElement, selectedItem, sourceRecordAll){
         if(selectedItem.value){
             jQuery('#myModal').modal('hide');
             jQuery('#myModal').detach();
-            lookupElement.children[1].children[0].children[0].value = selectedItem.value;
-            localStorage.setItem("DataSourceRecordNum", selectedItem.recordNum);
-            validLookup = true;
-            
-            placeValue(sourceRecordAll);
+            placeValue(selectedItem, lookupElement, sourceRecordAll, sourceFieldCode);
         } else {
             alert('Select one value');
         }
     });
 };
 
-var placeValue = function(sourceRecordAll){
-    var destinationUniqueNumber = localStorage.getItem("destinationUniqueNumber");
-    var destinationClassName = ".value-" + destinationUniqueNumber;
-    console.log(jQuery(destinationClassName));
-    var valueHolderElement = jQuery(destinationClassName);
+var placeValue = function(selectedItem, lookupElement, sourceRecordAll, sourceFieldCode){
+    lookupElement.children[1].children[0].children[0].value = selectedItem.value;
+    localStorage.setItem("DataSourceRecordNum", selectedItem.recordNum);
+    validLookup = true;
 
-    console.log(sourceRecordAll);
+    sourceRecordAll.forEach(function(record){
+        if(record.$id.value === selectedItem.recordNum){
+            destinationElement[0].children[0].children[0].value = record[sourceFieldCode].value;
+        }
+    })
 };
 
 //Filter the given records by the given criteria field codes 

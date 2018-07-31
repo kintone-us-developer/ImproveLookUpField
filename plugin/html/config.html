@@ -71,9 +71,9 @@
     <!-- data source fields selection-->
     <div id="lookupSetting">
         <div class="block">
-            <div class="kintoneplugin-row">{{html:dataSourceFields.title}}</div>
-            <select id="{{html:dataSourceFields.id}}" multiple="multiple">
-                {{for dataSourceFields.fields}}
+            <div class="kintoneplugin-row">{{html:keyFields.title}}</div>
+            <select id="{{html:keyFields.id}}" multiple="multiple">
+                {{for keyFields.fields}}
                     <option value="{{html:code}}">{{html:label}} [{{html:type}}]</option>
                 {{/for}}
             </select>

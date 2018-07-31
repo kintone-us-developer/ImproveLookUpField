@@ -28,10 +28,14 @@ jQuery.noConflict();
 
     //Generate the pop up window based on the query and get the record number of the selected record
     kintone.events.on(['app.record.create.show', 'app.record.edit.show'], function(event) {
-        var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
-
+        var lookupElement = getSetLookupField("control-single_line_text-field-gaia", textField.label);
         attachAttributes(lookupElement);
         addLookupClear(lookupElement);
+
+        var destinationUniqueNumber = localStorage.getItem("destinationUniqueNumber");
+        var destinationClassName = ".value-" + destinationUniqueNumber;
+        destinationElement = jQuery(destinationClassName);
+        destinationElement[0].children[0].children[0].disabled = true;
 
         var selectedItem = {
             "value":'', 
@@ -69,7 +73,7 @@ jQuery.noConflict();
                         if(matchedRecordArray.length > 0){
                             createPopupContent(matchedRecordArray);
 //Here: Place mapping value
-                            getValue(lookupElement, selectedItem, sourceRecordAll);
+                            getValue(lookupElement, selectedItem, sourceRecordAll, fieldMapping.sourceFieldCode);
                             matchedRecordArray = [];    
                         } else {
                             event.record[textField.code].error = 'No records matched.';
@@ -208,7 +212,7 @@ jQuery.noConflict();
         
                 promise.then(function(result){
                     if(appendURL){
-                        var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+                        var lookupElement = getSetLookupField("control-single_line_text-field-gaia", textField.label);
         
                         var aTag = document.createElement("a");
                         aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
@@ -253,7 +257,7 @@ jQuery.noConflict();
     
             promise.then(function(result){
                 if(appendURL){
-                    var lookupElement = getSetTextField("control-single_line_text-field-gaia", textField.label);
+                    var lookupElement = getSetLookupField("control-single_line_text-field-gaia", textField.label);
     
                     var aTag = document.createElement("a");
                     aTag.setAttribute("href", "/k/" + config.dataSourceAppId + "/show#record=" + DataSourceRecordNum);
@@ -309,12 +313,9 @@ jQuery.noConflict();
 
     //
     kintone.events.on(['app.record.index.show', 'app.record.index.edit.submit.success'], function(event){
-        console.log(fieldMapping.destinatioFieldCode);
+//kintone.app.getFieldElements doesn't work if there is no record
         var destinationUniqueNumber = kintone.app.getFieldElements(fieldMapping.destinatioFieldCode)[0].className.match(/(?<=value-)(.*)/g)[0];
-        console.log(destinationUniqueNumber);
         localStorage.setItem("destinationUniqueNumber", destinationUniqueNumber);
-
-
 
         if(event.type === 'app.record.index.show'){
             mainAppRecords = event.records;
