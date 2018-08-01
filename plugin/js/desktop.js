@@ -11,6 +11,10 @@ jQuery.noConflict();
     var dummyAppId = config.dummyAppId;
     var keyFieldCodes = JSON.parse(config.keyFieldCodes);//Array of the field code of the selected data source fields
     var textField = JSON.parse(config.textField);
+    var fieldMapping = JSON.parse(config.fieldMappings);
+    var destinationField = JSON.parse(fieldMapping.destinationField);
+    var sourceField = JSON.parse(fieldMapping.sourceField);
+    fieldMapping = {"destinationField": destinationField, "sourceField": sourceField};
     
     //Those variables are over-written across the multiple events
     var body = "";
@@ -23,8 +27,6 @@ jQuery.noConflict();
     var mainAppRecords =[];
 
 
-    var fieldMapping = JSON.parse(config.fieldMappings);
-
 
     //Generate the pop up window based on the query and get the record number of the selected record
     kintone.events.on(['app.record.create.show', 'app.record.edit.show'], function(event) {
@@ -34,8 +36,29 @@ jQuery.noConflict();
 
         var destinationUniqueNumber = localStorage.getItem("destinationUniqueNumber");
         var destinationClassName = ".value-" + destinationUniqueNumber;
-        destinationElement = jQuery(destinationClassName);
-        destinationElement[0].children[0].children[0].disabled = true;
+        destinationElement = $(destinationClassName);
+
+        //Once I find the right element, I can give the id like "temp" and use jquery with that id
+        console.log(destinationElement);
+        if(typeText.includes(destinationField.type)){
+            destinationElement[0].children[0].children[0].disabled = true;
+        } else if(destinationField.type === 'RICH_TEXT'){
+            destinationElement[0].children[0].children[1].contentEditable = false;
+        //Change the background color
+            //destinationElement[0].children[0].children[1].setAttribute("background-color", "FFFC33");
+        } else if(destinationField.type === 'NUMBER'){
+            destinationElement[0].children[0].children[1].children[0].children[0].disabled = true;
+        } else if(destinationField.type === 'RADIO_BUTTON'){
+            Array.from(destinationElement[0].children[0].children).forEach(function(element){
+                element.children[0].disabled = true;
+            });
+        } else if(destinationField.type === 'DROP_DOWN'){
+//Stopped here
+            console.log($(".value-5523293"));
+            console.log("Right type");
+            destinationElement[0].disabled = true;
+            // destinationElement[0].children[0].disabled = true;
+        }
 
         var selectedItem = {
             "value":'', 
@@ -73,7 +96,7 @@ jQuery.noConflict();
                         if(matchedRecordArray.length > 0){
                             createPopupContent(matchedRecordArray);
 //Here: Place mapping value
-                            getValue(lookupElement, selectedItem, sourceRecordAll, fieldMapping.sourceFieldCode);
+                            getValue(lookupElement, selectedItem, sourceRecordAll, fieldMapping);
                             matchedRecordArray = [];    
                         } else {
                             event.record[textField.code].error = 'No records matched.';
@@ -97,6 +120,8 @@ jQuery.noConflict();
             lookupElement.children[1].children[0].children[0].value = "";
             selectedItem.recordNum = "";
             selectedItem.value = "";
+            localStorage.removeItem("body");
+            localStorage.removeItem("method");
             localStorage.removeItem("DataSourceRecordNum");
             validLookup = true;
         });
@@ -314,7 +339,7 @@ jQuery.noConflict();
     //
     kintone.events.on(['app.record.index.show', 'app.record.index.edit.submit.success'], function(event){
 //kintone.app.getFieldElements doesn't work if there is no record
-        var destinationUniqueNumber = kintone.app.getFieldElements(fieldMapping.destinatioFieldCode)[0].className.match(/(?<=value-)(.*)/g)[0];
+        var destinationUniqueNumber = kintone.app.getFieldElements(destinationField.code)[0].className.match(/(?<=value-)(.*)/g)[0];
         localStorage.setItem("destinationUniqueNumber", destinationUniqueNumber);
 
         if(event.type === 'app.record.index.show'){

@@ -26,10 +26,10 @@ jQuery.noConflict();
     var availableDestionationTypes = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT', 'RICH_TEXT', 'RADIO_BUTTON', 'DROP_DOWN', 'LINK', 'DATE',
         'TIME', 'DATETIME', 'USER_SELECT', 'ORGANIZATION_SELECT', 'GROUP_SELECT'];
     //mappable source field types to the specofied destination field type (Destination to Source)
-    var textMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'RADIO_BUTTON', 'DROP_DOWN'];
+    var textMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'RADIO_BUTTON', 'DROP_DOWN'];//
     var numberMappableDtoS = ['NUMBER', 'CALC', 'RECORD_NUMBER'];
-    var textAreaMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT'];
-    var richTextMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT', 'RICH_TEXT'];
+    var textAreaMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT'];//
+    var richTextMappableDtoS = ['SINGLE_LINE_TEXT', 'NUMBER', 'MULTI_LINE_TEXT', 'RICH_TEXT'];//
     var radioButtonMappableDtoS = ['RADIO_BUTTON'];
     var dropDownMappableDtoS = ['DROP_DOWN'];
     var linkMappableDtoS = ['LINK'];
@@ -209,6 +209,7 @@ jQuery.noConflict();
         var configTemplateItems = null;
         var originalSourceFields = [];
         var originalDestinationFields = [];
+
         $('#submit').click(function() {
             var config = {};
             config.activation = $('#activation').prop('checked') ? 'active' : 'deactive';
@@ -218,7 +219,6 @@ jQuery.noConflict();
                 config.templateItems = configTemplateItems;
             }
             var textFieldCode = $('#textField').val();
-
             fields.textFields.forEach(function(e){
                 if(textFieldCode === e.code){
                     config.textField = JSON.stringify({'code': textFieldCode, 'label': e.label});
@@ -233,9 +233,11 @@ jQuery.noConflict();
             }
             config.keyFieldCodes = JSON.stringify(tempKeyFields);
 
-            if(config.textField && config.dummyAppId && config.dataSourceAppId && config.templateItems){
-                alert("hello");
-                config.fieldMappings = JSON.stringify({"destinatioFieldCode": $("#destination").val(), "sourceFieldCode": $("#source").val()});
+            if(config.textField && config.dummyAppId && config.dataSourceAppId && config.templateItems && config.keyFieldCodes){
+                config.fieldMappings = JSON.stringify({"destinationField": JSON.stringify({"code": $("#destination").val(), 
+                        "type": $("#destination")[0].selectedOptions[0].text.match(/(?<=\[)(.*?)(?=\])/g)[0]}), 
+                    "sourceField": JSON.stringify({"code": $("#source").val(), 
+                        "type": $("#source")[0].selectedOptions[0].text.match(/(?<=\[)(.*?)(?=\])/g)[0]})});
                 var body = {
                     "app": config.dummyAppId
                 };
@@ -278,9 +280,9 @@ jQuery.noConflict();
                     }
                 });
             } else {
-                config = {
-                    "activation": config.activation
-                }
+                alert("Set config nothing");
+
+                config = {};
                 kintone.plugin.app.setConfig(config);
             }
         });
@@ -416,6 +418,7 @@ jQuery.noConflict();
 
 // set existing values
         var config = kintone.plugin.app.getConfig(PLUGIN_ID);
+        console.log("Previous setting " + Object.keys(config).length);
         if (Object.keys(config).length > 0) {
             $('#activation').prop('checked', config.activation === 'active');
             $('#textField').val(JSON.parse(config.textField).code);
@@ -435,16 +438,18 @@ jQuery.noConflict();
             });
 
             var fieldMappings = JSON.parse(config.fieldMappings);
-            $('#destination option').each(function(){
-                if(fieldMappings.destination === $(this).val()){
-                    this.setAttribute("selected", "selected");
-                }
-            });
-            $('#source option').each(function(){
-                if(fieldMappings.source === $(this).val()){
-                    this.setAttribute("selected", "selected");
-                }
-            });
+            if(fieldMappings){
+                $('#destination option').each(function(){
+                    if(fieldMappings.destinationFieldCode === $(this).val()){
+                        this.setAttribute("selected", "selected");
+                    }
+                });
+                $('#source option').each(function(){
+                    if(JSON.parse(fieldMappings.sourceField).code === $(this).val()){
+                        this.setAttribute("selected", "selected");
+                    }
+                });
+            }
         }
 
         appendEvents(fields);

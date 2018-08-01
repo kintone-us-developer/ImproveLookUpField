@@ -1,12 +1,11 @@
 "use strict";
 
-//Used across the record.create/edit events
 var validLookup = false;
-
 var regexCommaSpace = /, | , | ,/g;
 var regexBESpace = /^\s+|\s+jQuery|,+jQuery/g;
-
 var destinationElement = '';
+
+var typeText = ['SINGLE_LINE_TEXT', 'MULTI_LINE_TEXT'];
 
 //Given the className and the field label find the element that is the text field the user chose in the plugin setting page
 function getSetLookupField(className, label){
@@ -132,7 +131,7 @@ var addModal = function(popup){
 };
 
 //Set the value
-var getValue = function(lookupElement, selectedItem, sourceRecordAll, sourceFieldCode){
+var getValue = function(lookupElement, selectedItem, sourceRecordAll, fieldMapping){
     jQuery('#myModal').click(function(){
         jQuery('#myModal').modal('hide');
         jQuery('#myModal').detach();
@@ -157,21 +156,42 @@ var getValue = function(lookupElement, selectedItem, sourceRecordAll, sourceFiel
         if(selectedItem.value){
             jQuery('#myModal').modal('hide');
             jQuery('#myModal').detach();
-            placeValue(selectedItem, lookupElement, sourceRecordAll, sourceFieldCode);
+            placeValue(selectedItem, lookupElement, sourceRecordAll, fieldMapping);
         } else {
             alert('Select one value');
         }
     });
 };
 
-var placeValue = function(selectedItem, lookupElement, sourceRecordAll, sourceFieldCode){
+var placeValue = function(selectedItem, lookupElement, sourceRecordAll, fieldMapping){
     lookupElement.children[1].children[0].children[0].value = selectedItem.value;
     localStorage.setItem("DataSourceRecordNum", selectedItem.recordNum);
     validLookup = true;
 
+//Put the value in the destination field
+    var typeList = ['RADIO_BUTTON', 'DROP_DOWN'];
+    var typeDate = ['DATE', 'TIME', 'DATETIME'];
+    //LINK', 'USER_SELECT', 'ORGANIZATION_SELECT', 'GROUP_SELECT'
+    
+    console.log(sourceRecordAll);
+    console.log(fieldMapping);
+    console.log(destinationElement);
     sourceRecordAll.forEach(function(record){
         if(record.$id.value === selectedItem.recordNum){
-            destinationElement[0].children[0].children[0].value = record[sourceFieldCode].value;
+            if(typeText.includes(fieldMapping.destinationField.type)){
+                destinationElement[0].children[0].children[0].value = record[fieldMapping.sourceField.code].value;
+            } else if (fieldMapping.destinationField.type === 'RICH_TEXT'){
+                destinationElement[0].children[0].children[1].textContent = record[fieldMapping.sourceField.code].value;
+            } else if (fieldMapping.destinationField.type === 'NUMBER'){
+                destinationElement[0].children[0].children[1].children[0].children[0].value = record[fieldMapping.sourceField.code].value;
+            } else if(fieldMapping.destinationField.type === 'RADIO_BUTTON'){
+                console.log("Right type");
+                Array.from(destinationElement[0].children[0].children).forEach(function(element){
+                    if(element.children[1].textContent === record[fieldMapping.sourceField.code].value){
+                        element.children[0].checked = true;
+                    }
+                });
+            }
         }
     })
 };
